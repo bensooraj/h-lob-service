@@ -320,3 +320,29 @@ func (wsc *WebsocketConnection) Reconnect() {
 	}
 
 }
+
+// SendMessage ...
+func (wsc *WebsocketConnection) SendMessage(msg []byte) {
+	wsc.WriteBufferChannel <- msg
+}
+
+// SendPingMessage ...
+func (wsc *WebsocketConnection) SendPingMessage(msg []byte) {
+	wsc.PingMessageBufferChannel <- msg
+}
+
+// SendCloseMessage ...
+func (wsc *WebsocketConnection) SendCloseMessage(msg []byte) {
+	wsc.CloseMessageBufferChannel <- msg
+}
+
+// SendJSONMessage ...
+func (wsc *WebsocketConnection) SendJSONMessage(msg interface{}) error {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("[ws][%s] Failed to marshal the msg to JSON: %s", wsc.WebsocketURL, err.Error())
+		return err
+	}
+	wsc.WriteBufferChannel <- data
+	return nil
+}
