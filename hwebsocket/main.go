@@ -331,6 +331,7 @@ func (wsc *WebsocketConnection) SendMessage(msg []byte) {
 // SendPingMessage ...
 func (wsc *WebsocketConnection) SendPingMessage(msg []byte) {
 	wsc.PingMessageBufferChannel <- msg
+	log.Printf("[ws][%s] PING SENT: %s", wsc.WebsocketURL, msg)
 }
 
 // SendCloseMessage ...
