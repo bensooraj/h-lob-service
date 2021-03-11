@@ -8,13 +8,16 @@ import (
 
 // BinanceWebsocket ...
 type BinanceWebsocket struct {
-	BaseURL string
-	Conn    *hwebsocket.WebsocketConnection
+	BaseURL      string
+	Conn         *hwebsocket.WebsocketConnection
+	CloseChannel chan struct{}
 }
 
 // NewBinanceWebsocket ...
-func NewBinanceWebsocket() *BinanceWebsocket {
-	binanceWebsocket := &BinanceWebsocket{}
+func NewBinanceWebsocket(closeChannel chan struct{}) *BinanceWebsocket {
+	binanceWebsocket := &BinanceWebsocket{
+		CloseChannel: closeChannel,
+	}
 
 	return binanceWebsocket
 }
@@ -38,7 +41,8 @@ func (bws *BinanceWebsocket) Open(url string, messageHandleFunc func([]byte) err
 
 		for {
 			select {
-			case <-bws.Conn.CloseChannel:
+			case <-bws.CloseChannel:
+				bws.Conn.Close()
 				return
 			case tick := <-ticker.C:
 				bws.Conn.SendPingMessage([]byte(tick.String()))
