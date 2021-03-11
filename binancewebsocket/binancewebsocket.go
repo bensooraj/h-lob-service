@@ -51,3 +51,25 @@ func (bws *BinanceWebsocket) Open(url string, messageHandleFunc func([]byte) err
 	}()
 	return
 }
+
+// Subscribe ...
+func (bws *BinanceWebsocket) Subscribe(ID int64, streamList []string) {
+	subscribeRequest := LiveRequest{
+		Method: "SUBSCRIBE",
+		Params: streamList,
+		ID:     ID,
+	}
+	bws.Conn.SendJSONMessage(subscribeRequest)
+	return
+}
+
+// Unsubscribe ...
+func (bws *BinanceWebsocket) Unsubscribe(ID int64, streamList []string) {
+	unsubscribeRequest := LiveRequest{
+		Method: "UNSUBSCRIBE",
+		Params: streamList,
+		ID:     ID,
+	}
+	bws.Conn.SendJSONMessage(unsubscribeRequest)
+	return
+}

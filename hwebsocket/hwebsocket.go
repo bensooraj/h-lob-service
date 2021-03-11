@@ -257,6 +257,10 @@ func (wsc *WebsocketConnection) ReceiveMessage() {
 			switch msgType {
 			case websocket.BinaryMessage:
 			case websocket.TextMessage:
+				if wsc.MessageHandleFunc == nil {
+					log.Printf("[ws][%s] No message handler defined: %s", wsc.WebsocketURL, msg)
+					break
+				}
 				err = wsc.MessageHandleFunc(msg)
 				if err != nil {
 					log.Printf("[ws][%s] Error processing the message: %s", wsc.WebsocketURL, err.Error())
