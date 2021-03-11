@@ -1,3 +1,9 @@
+/*
+  Heavily taken from alexey-ernest's go-binance-websocket: https://github.com/alexey-ernest/go-binance-websocket
+  I didn't like how the variables were named, besides I wanted this to be both a learning experience and
+  be completely aware of what I am writing so I can fix it (if any issues arise).
+*/
+
 package hwebsocket
 
 import (
