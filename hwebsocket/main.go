@@ -150,6 +150,32 @@ func (wsc *WebsocketConnection) Close() {
 	}
 }
 
+// WriteRequest ...
+func (wsc *WebsocketConnection) WriteRequest() {
+	var err error
+	for {
+		select {
+		case <-wsc.CloseChannel:
+			log.Printf("[ws][%s] Exiting the WriteRequest go routine", wsc.WebsocketURL)
+			return
+
+		case msg := <-wsc.WriteBufferChannel:
+			err = wsc.Conn.WriteMessage(websocket.TextMessage, msg)
+
+		case msg := <-wsc.PingMessageBufferChannel:
+			err = wsc.Conn.WriteMessage(websocket.PingMessage, msg)
+
+		case msg := <-wsc.WriteBufferChannel:
+			err = wsc.Conn.WriteMessage(websocket.CloseMessage, msg)
+		}
+
+		if err != nil {
+			log.Printf("[ws][%s] Error writing message: %s", wsc.WebsocketURL, err.Error())
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
 // Subscribe ...
 func (wsc *WebsocketConnection) Subscribe(sub interface{}) error {
 	jsonData, err := json.Marshal(sub)
