@@ -54,10 +54,10 @@ func New() *WebsocketBuilder {
 
 // Build ...
 func (wsb *WebsocketBuilder) Build() *WebsocketConnection {
-	return &WebsocketConnection{
+	wsc := &WebsocketConnection{
 		WebsocketConfiguration: *wsb.wsConfig,
 	}
-	// PENDING
+	return wsc.InitialiseConnection()
 }
 
 // SetWebsocketURL ...
@@ -109,10 +109,27 @@ func (wsb *WebsocketBuilder) SetConnectionRetryLimit(crl int) *WebsocketBuilder 
 }
 
 // InitialiseConnection ...
-// func (wsc *WebsocketConnection) InitialiseConnection() *WebsocketConnection {
-// 	wsc.ReadDeadlineTime = time.Minute
+func (wsc *WebsocketConnection) InitialiseConnection() *WebsocketConnection {
+	wsc.ReadDeadlineTime = time.Minute
 
-// }
+	err := wsc.Connect()
+	if err != nil {
+		log.Panic("Error establishing websocket connection", err)
+	}
+
+	// This is like the done channel to exit all active go routines
+	wsc.CloseChannel = make(chan struct{}, 2)
+
+	// For sending messages to the remote websocket server
+	wsc.CloseMessageBufferChannel = make(bufferChannel, 1)
+	wsc.PingMessageBufferChannel = make(bufferChannel, 10)
+	wsc.WriteBufferChannel = make(bufferChannel, 10)
+
+	go wsc.WriteRequest()
+	go wsc.ReceiveMessage()
+
+	return wsc
+}
 
 // Connect ...
 func (wsc *WebsocketConnection) Connect() error {
@@ -167,7 +184,7 @@ func (wsc *WebsocketConnection) WriteRequest() {
 		case msg := <-wsc.PingMessageBufferChannel:
 			err = wsc.Conn.WriteMessage(websocket.PingMessage, msg)
 
-		case msg := <-wsc.WriteBufferChannel:
+		case msg := <-wsc.CloseMessageBufferChannel:
 			err = wsc.Conn.WriteMessage(websocket.CloseMessage, msg)
 		}
 
@@ -179,7 +196,7 @@ func (wsc *WebsocketConnection) WriteRequest() {
 }
 
 // ReceiveMessage ...
-func (wsc *WebsocketConnection) ReceiveMessage(msg []byte) {
+func (wsc *WebsocketConnection) ReceiveMessage() {
 	// CLOSE
 	wsc.Conn.SetCloseHandler(func(code int, text string) error {
 		log.Printf("[ws][%s] websocket exiting [code=%d, text=%s]", wsc.WebsocketURL, code, text)
