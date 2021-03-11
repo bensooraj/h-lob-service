@@ -37,7 +37,7 @@ type WebsocketConnection struct {
 	WriteBufferChannel        bufferChannel
 	PingMessageBufferChannel  bufferChannel
 	CloseMessageBufferChannel bufferChannel // For sending close signal to the ws server
-	Subs                      []interface{}
+	Subscriptions             []interface{}
 	CloseChannel              chan struct{} // For closing the connection locally
 
 	WebsocketConfiguration
@@ -272,15 +272,15 @@ func (wsc *WebsocketConnection) ReceiveMessage() {
 }
 
 // Subscribe ...
-func (wsc *WebsocketConnection) Subscribe(sub interface{}) error {
-	jsonData, err := json.Marshal(sub)
+func (wsc *WebsocketConnection) Subscribe(subscription interface{}) error {
+	jsonData, err := json.Marshal(subscription)
 	if err != nil {
-		log.Printf("[ws][%s] error encoding subscription info: %s", wsc.WebsocketURL, err.Error())
+		log.Printf("[ws][%s] error marshalling subscription info: %s", wsc.WebsocketURL, err.Error())
 		return err
 	}
 
 	wsc.WriteBufferChannel <- jsonData
-	wsc.Subs = append(wsc.Subs, sub)
+	wsc.Subscriptions = append(wsc.Subscriptions, subscription)
 
 	return nil
 }
@@ -311,11 +311,13 @@ func (wsc *WebsocketConnection) Reconnect() {
 			wsc.ErrorHandleFunc(errors.New("Failed To Reconnect"))
 		}
 	} else {
-		var subs []interface{}
-		copy(subs, wsc.Subs)
-		wsc.Subs = []interface{}{}
-		for _, sub := range subs {
-			_ = wsc.Subscribe(sub)
+		var subscriptions []interface{}
+
+		copy(subscriptions, wsc.Subscriptions)
+		wsc.Subscriptions = []interface{}{}
+
+		for _, subscription := range subscriptions {
+			_ = wsc.Subscribe(subscription)
 		}
 	}
 
