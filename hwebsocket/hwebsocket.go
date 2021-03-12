@@ -7,7 +7,6 @@
 package hwebsocket
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -15,7 +14,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // WebsocketConfiguration ...
 type WebsocketConfiguration struct {
