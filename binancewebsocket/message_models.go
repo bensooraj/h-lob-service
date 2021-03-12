@@ -17,13 +17,13 @@ type LiveResponse struct {
 
 // DepthUpdate ...
 type DepthUpdate struct {
-	EventType            string     `json:"e"`
-	EventTime            int64      `json:"E"`
-	TransactionTime      int64      `json:"T"`
-	Symbol               string     `json:"s"`
-	FirstUpdateID        int64      `json:"U"`
-	LastUpdateID         int64      `json:"u"`
-	PreviousLastUpdateID int64      `json:"pu"`
-	BidDepthDelta        [][]string `json:"b"`
-	AskDepthDelta        [][]string `json:"a"`
+	EventType            string      `json:"e"`
+	EventTime            int64       `json:"E"`
+	TransactionTime      int64       `json:"T"`
+	Symbol               string      `json:"s"`
+	FirstUpdateID        int64       `json:"U"`
+	LastUpdateID         int64       `json:"u"`
+	PreviousLastUpdateID int64       `json:"pu"`
+	BidDepthDelta        [][2]float64 `json:"b"`
+	AskDepthDelta        [][2]float64 `json:"a"`
 }
