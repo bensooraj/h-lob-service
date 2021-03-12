@@ -1,6 +1,8 @@
 package limitorderbook
 
-import "github.com/google/btree"
+import (
+	"github.com/google/btree"
+)
 
 // L2LimitOrderBook
 type L2LimitOrderBook struct {
@@ -34,7 +36,7 @@ func (l2lob *L2LimitOrderBook) UpdateOrAdd(price, quantity float64, side string)
 	} else if side == "b" {
 
 		if _, ok := l2lob.CumulativeBidLimitsMap[adjustedPrice]; !ok {
-			l2lob.Asks.ReplaceOrInsert(btree.Int(adjustedPrice))
+			l2lob.Bids.ReplaceOrInsert(btree.Int(adjustedPrice))
 		}
 		l2lob.CumulativeBidLimitsMap[adjustedPrice] = quantity
 
@@ -54,7 +56,7 @@ func (l2lob *L2LimitOrderBook) Remove(price float64, side string) {
 	} else if side == "b" {
 
 		if _, ok := l2lob.CumulativeBidLimitsMap[adjustedPrice]; ok {
-			l2lob.Asks.Delete(btree.Int(adjustedPrice))
+			l2lob.Bids.Delete(btree.Int(adjustedPrice))
 		}
 		delete(l2lob.CumulativeBidLimitsMap, adjustedPrice)
 
