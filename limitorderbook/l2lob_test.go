@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/btree"
+	"github.com/robaho/fixed"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,17 +42,25 @@ func TestLoB_UpdateOrAdd_Small(t *testing.T) {
 		for _, pq := range test.bids {
 			price := pq[0]
 			quantity := pq[1]
-			l2lob.UpdateOrAdd(LoBFloat64(price), quantity, "b")
+
+			fPrice := fixed.NewF(price)
+			l2lob.UpdateOrAdd(LoBFixed(fPrice), quantity, "b")
 		}
 		actual := []float64{}
 		l2lob.Bids.Ascend(func(price btree.Item) bool {
-			// actual = append(actual, float64(price.(btree.Int))/100)
-			actual = append(actual, float64(price.(LoBFloat64)))
+			fPrice := fixed.Fixed(price.(LoBFixed))
+			actual = append(actual, fPrice.Float())
 			return true
 		})
 		assert.Equalf(test.expectedBidsOrder, actual, "The prices must be in ascending order!")
-		assert.Equalf(test.expectedMax, float64(l2lob.Bids.Max().(LoBFloat64)), "The max bid price must be: %.2f", test.expectedMax)
-		assert.Equalf(test.expectedMin, float64(l2lob.Bids.Min().(LoBFloat64)), "The min bid price must be: %.2f", test.expectedMin)
+
+		// Max
+		max := fixed.Fixed(l2lob.Bids.Max().(LoBFixed))
+		assert.Equalf(test.expectedMax, max.Float(), "The max bid price must be: %.2f", test.expectedMax)
+
+		// Min
+		min := fixed.Fixed(l2lob.Bids.Min().(LoBFixed))
+		assert.Equalf(test.expectedMin, min.Float(), "The min bid price must be: %.2f", test.expectedMin)
 	}
 
 }
