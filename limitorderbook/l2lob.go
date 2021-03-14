@@ -2,15 +2,18 @@ package limitorderbook
 
 import (
 	"github.com/google/btree"
+	"github.com/robaho/fixed"
 )
 
 // L2LimitOrderBook
 type L2LimitOrderBook struct {
+	Exchange               string
+	Symbol                 string
 	Bids                   *btree.BTree
 	Asks                   *btree.BTree
 	PriceScale             float64
-	CumulativeBidLimitsMap map[LoBFloat64]float64
-	CumulativeAskLimitsMap map[LoBFloat64]float64
+	CumulativeBidLimitsMap map[LoBFixed]float64
+	CumulativeAskLimitsMap map[LoBFixed]float64
 }
 
 // LoBInt64 implements the Item interface for int64.
@@ -20,6 +23,7 @@ type LoBInt64 int64
 func (a LoBInt64) Less(b btree.Item) bool {
 	return a < b.(LoBInt64)
 }
+
 // LoBInt64 implements the Item interface for int64.
 type LoBFloat64 float64
 
@@ -28,17 +32,26 @@ func (a LoBFloat64) Less(b btree.Item) bool {
 	return a < b.(LoBFloat64)
 }
 
+// LoBInt64 implements the Item interface for int64.
+type LoBFixed fixed.Fixed
+
+// Less returns true if Fixed(a) < Fixed(b).
+func (a LoBFixed) Less(b btree.Item) bool {
+	
+	return fixed.Fixed(a).LessThan(fixed.Fixed(b.(LoBFixed)))
+}
+
 func NewL2LimitOrderBook(pricePrecision float64) *L2LimitOrderBook {
 	return &L2LimitOrderBook{
 		Bids:                   btree.New(2),
 		Asks:                   btree.New(2),
 		PriceScale:             pricePrecision,
-		CumulativeBidLimitsMap: make(map[LoBFloat64]float64),
-		CumulativeAskLimitsMap: make(map[LoBFloat64]float64),
+		CumulativeBidLimitsMap: make(map[LoBFixed]float64),
+		CumulativeAskLimitsMap: make(map[LoBFixed]float64),
 	}
 }
 
-func (l2lob *L2LimitOrderBook) UpdateOrAdd(price LoBFloat64, quantity float64, side string) {
+func (l2lob *L2LimitOrderBook) UpdateOrAdd(price LoBFixed, quantity float64, side string) {
 	// adjustedPrice := LoBInt64(price * math.Pow(10, l2lob.PriceScale))
 
 	if side == "a" {
@@ -58,7 +71,7 @@ func (l2lob *L2LimitOrderBook) UpdateOrAdd(price LoBFloat64, quantity float64, s
 	}
 }
 
-func (l2lob *L2LimitOrderBook) Remove(price LoBFloat64, side string) {
+func (l2lob *L2LimitOrderBook) Remove(price LoBFixed, side string) {
 	// adjustedPrice := LoBInt64(price * math.Pow(10, l2lob.PriceScale))
 
 	if side == "a" {
