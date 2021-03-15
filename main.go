@@ -33,7 +33,7 @@ func main() {
 		var depthUpdate binancewebsocket.DepthUpdate
 		err = json.Unmarshal(msg, &depthUpdate)
 		if err == nil && depthUpdate.EventType == "depthUpdate" {
-			log.Println("DEPTH Update Received", depthUpdate.EventType)
+			log.Println("DEPTH Update Received", depthUpdate.Symbol)
 
 			binanceL2LoB.DepthUpdateBufferChannel <- depthUpdate
 

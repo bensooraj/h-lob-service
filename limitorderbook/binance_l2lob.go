@@ -19,6 +19,7 @@ type BinanceL2LimitOrderBook struct {
 	*L2LimitOrderBook
 	LastUpdateID             int64
 	DepthUpdateBufferChannel chan binancewebsocket.DepthUpdate
+	IsInSync                 bool
 }
 
 func NewBinanceL2LimitOrderBook() *BinanceL2LimitOrderBook {
@@ -67,38 +68,11 @@ func (bL2LoB *BinanceL2LimitOrderBook) InitOrderBookFromSnapshot() error {
 		return err
 	}
 
-	bL2LoB.Lock()
-	defer bL2LoB.Unlock()
-
 	// Set the last update ID
+	bL2LoB.ProcessBidsAndAsks(depthSnapshot.Bids, "b") // b => bids
+	bL2LoB.ProcessBidsAndAsks(depthSnapshot.Asks, "a") // a => asks
 	bL2LoB.LastUpdateID = depthSnapshot.LastUpdateID
 
-	// Update the bids
-	for _, bid := range depthSnapshot.Bids {
-		p := bid[0] // Price
-		q := bid[1] // Quantity
-
-		price := LoBFixed(fixed.NewS(p))
-		quantity, err := strconv.ParseFloat(q, 64)
-		if err != nil {
-			continue
-		}
-
-		bL2LoB.UpdateOrAdd(price, quantity, "b")
-	}
-	// Update the asks
-	for _, ask := range depthSnapshot.Asks {
-		p := ask[0] // Price
-		q := ask[1] // Quantity
-
-		price := LoBFixed(fixed.NewS(p))
-		quantity, err := strconv.ParseFloat(q, 64)
-		if err != nil {
-			continue
-		}
-
-		bL2LoB.UpdateOrAdd(price, quantity, "a")
-	}
 	log.Printf("%s orderbook for %s initialised\n", bL2LoB.Exchange, bL2LoB.Symbol)
 
 	return nil
@@ -110,9 +84,11 @@ func (bL2LoB *BinanceL2LimitOrderBook) UpdateOrderBook(doneChannel <-chan struct
 		for {
 			select {
 			case <-doneChannel:
-				log.Println("Exiting UpdateOrderBook")
+				log.Println("Exiting UpdateOrderBook goroutine")
 				return
 			case depthUpdate := <-bL2LoB.DepthUpdateBufferChannel:
+				log.Printf("[ORDERBOOK] u: %d | U: %d | pu: %d | local: %d\n", depthUpdate.LastUpdateID, depthUpdate.FirstUpdateID, depthUpdate.PreviousLastUpdateID, bL2LoB.LastUpdateID)
+
 				// If the LastUpdateID has been reset to 0, please wait for
 				if bL2LoB.LastUpdateID == 0 {
 					err := bL2LoB.InitOrderBookFromSnapshot()
@@ -122,44 +98,35 @@ func (bL2LoB *BinanceL2LimitOrderBook) UpdateOrderBook(doneChannel <-chan struct
 					}
 				}
 
+				// Drop any event where u is < lastUpdateId in the snapshot.
+				if depthUpdate.LastUpdateID < bL2LoB.LastUpdateID {
+					log.Printf("[ORDERBOOK] Skipping stale Depth Update ID. Received %d | local %d\n ", depthUpdate.LastUpdateID, bL2LoB.LastUpdateID)
+					break
+				}
+
+				// The first processed event should have U <= lastUpdateId AND u >= lastUpdateId
+				if depthUpdate.FirstUpdateID <= bL2LoB.LastUpdateID && depthUpdate.LastUpdateID >= bL2LoB.LastUpdateID {
+
+					log.Println("[ORDERBOOK] Processing first depth update event")
+					bL2LoB.ProcessBidsAndAsks(depthUpdate.BidDepthDelta, "b") // b => bids
+					bL2LoB.ProcessBidsAndAsks(depthUpdate.AskDepthDelta, "a") // a => asks
+					bL2LoB.LastUpdateID = depthUpdate.LastUpdateID
+
+				} else if depthUpdate.PreviousLastUpdateID == bL2LoB.LastUpdateID {
+
+					// While listening to the stream, each new event's pu should be equal to the previous event's u,
+					// otherwise re-initialize the process
+					log.Println("[ORDERBOOK] Processing in-sync depth update events")
+					bL2LoB.ProcessBidsAndAsks(depthUpdate.BidDepthDelta, "b") // b => bids
+					bL2LoB.ProcessBidsAndAsks(depthUpdate.AskDepthDelta, "a") // a => asks
+					bL2LoB.LastUpdateID = depthUpdate.LastUpdateID
+
+				} else {
+					log.Println("[ORDERBOOK] Updates/local copy not in-sync. Re-initialising")
+					bL2LoB.LastUpdateID = 0
+					break
+				}
 				//
-				bL2LoB.Lock()
-
-				// Update the bids
-				for _, bid := range depthUpdate.BidDepthDelta {
-					p := bid[0] // Price
-					q := bid[1] // Quantity
-
-					price := LoBFixed(fixed.NewS(p))
-					quantity, err := strconv.ParseFloat(q, 64)
-					if err != nil {
-						continue
-					}
-
-					if quantity == 0 {
-						bL2LoB.Remove(price, "b")
-					} else {
-						bL2LoB.UpdateOrAdd(price, quantity, "b")
-					}
-				}
-				// Update the asks
-				for _, ask := range depthUpdate.AskDepthDelta {
-					p := ask[0] // Price
-					q := ask[1] // Quantity
-
-					price := LoBFixed(fixed.NewS(p))
-					quantity, err := strconv.ParseFloat(q, 64)
-					if err != nil {
-						continue
-					}
-
-					if quantity == 0 {
-						bL2LoB.Remove(price, "a")
-					} else {
-						bL2LoB.UpdateOrAdd(price, quantity, "a")
-					}
-				}
-				defer bL2LoB.Unlock()
 			default:
 				// Just so the select is non-blocking
 
@@ -167,4 +134,29 @@ func (bL2LoB *BinanceL2LimitOrderBook) UpdateOrderBook(doneChannel <-chan struct
 		}
 	}()
 
+}
+
+func (bL2LoB *BinanceL2LimitOrderBook) ProcessBidsAndAsks(priceQuantityPairs [][2]string, side string) error {
+	bL2LoB.Lock()
+	defer bL2LoB.Unlock()
+
+	for _, pqPair := range priceQuantityPairs {
+		p := pqPair[0] // Price
+		q := pqPair[1] // Quantity
+
+		price := LoBFixed(fixed.NewS(p))
+		quantity, err := strconv.ParseFloat(q, 64)
+		if err != nil {
+			log.Printf("[ERROR] price %s with quantity %s. %s", p, q, err.Error())
+			continue
+		}
+		// Remove the quantity if needed
+		if quantity == 0 {
+			bL2LoB.Remove(price, side)
+		} else {
+			bL2LoB.UpdateOrAdd(price, quantity, side)
+		}
+	}
+
+	return nil
 }
