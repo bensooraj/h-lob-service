@@ -37,7 +37,7 @@ type LoBFixed fixed.Fixed
 
 // Less returns true if Fixed(a) < Fixed(b).
 func (a LoBFixed) Less(b btree.Item) bool {
-	
+
 	return fixed.Fixed(a).LessThan(fixed.Fixed(b.(LoBFixed)))
 }
 
@@ -49,6 +49,18 @@ func NewL2LimitOrderBook(pricePrecision float64) *L2LimitOrderBook {
 		CumulativeBidLimitsMap: make(map[LoBFixed]float64),
 		CumulativeAskLimitsMap: make(map[LoBFixed]float64),
 	}
+}
+
+// SetExchange ..
+func (l2lob *L2LimitOrderBook) SetExchange(exchangeName string) *L2LimitOrderBook {
+	l2lob.Exchange = exchangeName
+	return l2lob
+}
+
+// SetSymbol ..
+func (l2lob *L2LimitOrderBook) SetSymbol(symbolName string) *L2LimitOrderBook {
+	l2lob.Symbol = symbolName
+	return l2lob
 }
 
 func (l2lob *L2LimitOrderBook) UpdateOrAdd(price LoBFixed, quantity float64, side string) {
