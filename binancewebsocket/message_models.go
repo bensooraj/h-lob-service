@@ -24,6 +24,6 @@ type DepthUpdate struct {
 	FirstUpdateID        int64       `json:"U"`
 	LastUpdateID         int64       `json:"u"`
 	PreviousLastUpdateID int64       `json:"pu"`
-	BidDepthDelta        [][2]float64 `json:"b"`
-	AskDepthDelta        [][2]float64 `json:"a"`
+	BidDepthDelta        [][2]string `json:"b"`
+	AskDepthDelta        [][2]string `json:"a"`
 }

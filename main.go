@@ -10,6 +10,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/binancewebsocket"
+	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/limitorderbook"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -20,10 +21,11 @@ func main() {
 
 	doneChannel := make(chan struct{}, 0)
 
-	binanceWebsocket := binancewebsocket.NewBinanceWebsocket(doneChannel)
+	binanceL2LoB := limitorderbook.NewBinanceL2LimitOrderBook()
 
-	// wsConnectionURL := url.URL{Scheme: "wss", Host: "fstream.binance.com", Path: "/ws/"}
 	wsConnectionURL := url.URL{Scheme: "wss", Host: "stream.binancefuture.com", Path: "/ws/"}
+
+	binanceWebsocket := binancewebsocket.NewBinanceWebsocket(doneChannel)
 	binanceWebsocket.Open(wsConnectionURL.String(), func(msg []byte) error {
 		var err error
 		// Check if it's a depth update event
@@ -31,6 +33,12 @@ func main() {
 		err = json.Unmarshal(msg, &depthUpdate)
 		if err == nil && depthUpdate.EventType == "depthUpdate" {
 			log.Println("DEPTH Update Received", depthUpdate.EventType)
+
+			if binanceL2LoB.LastUpdateID == 0 {
+				binanceL2LoB.InitOrderBookFromSnapshot()
+			} else {
+				
+			}
 
 			return nil
 		}

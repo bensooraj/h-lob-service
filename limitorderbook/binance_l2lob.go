@@ -9,6 +9,7 @@ import (
 	"github.com/google/btree"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/robaho/fixed"
+	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/binancewebsocket"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -28,6 +29,8 @@ func NewBinanceL2LimitOrderBook() *BinanceL2LimitOrderBook {
 	bL2LoB.CumulativeBidLimitsMap = make(map[LoBFixed]float64)
 	bL2LoB.CumulativeAskLimitsMap = make(map[LoBFixed]float64)
 
+	bL2LoB.LastUpdateID = 0
+
 	return bL2LoB
 }
 
@@ -40,8 +43,8 @@ type DepthSnapshot struct {
 	Asks              [][2]string `json:"asks"`
 }
 
-// SetOrderBookFromSnapshot ...
-func (bL2LoB *BinanceL2LimitOrderBook) SetOrderBookFromSnapshot() error {
+// InitOrderBookFromSnapshot ...
+func (bL2LoB *BinanceL2LimitOrderBook) InitOrderBookFromSnapshot() error {
 	depthSnapshotURL := url.URL{Scheme: "https", Host: "testnet.binancefuture.com", Path: "/fapi/v1/depth?symbol=BTCUSDT&limit=1000"}
 	response, err := http.Get(depthSnapshotURL.String())
 	if err != nil {
@@ -87,6 +90,48 @@ func (bL2LoB *BinanceL2LimitOrderBook) SetOrderBookFromSnapshot() error {
 		}
 
 		bL2LoB.UpdateOrAdd(price, quantity, "a")
+	}
+
+	return nil
+}
+
+func (bL2LoB *BinanceL2LimitOrderBook) UpdateOrderBook(depthUpdate *binancewebsocket.DepthUpdate) error {
+
+	// Update the bids
+	for _, bid := range depthUpdate.BidDepthDelta {
+		p := bid[0] // Price
+		q := bid[1] // Quantity
+
+		price := LoBFixed(fixed.NewS(p))
+		quantity, err := strconv.ParseFloat(q, 64)
+		if err != nil {
+			continue
+		}
+
+		if quantity == 0 {
+			bL2LoB.Remove(price, "b")
+		} else {
+			bL2LoB.UpdateOrAdd(price, quantity, "b")
+		}
+
+	}
+	// Update the asks
+	for _, ask := range depthUpdate.AskDepthDelta {
+		p := ask[0] // Price
+		q := ask[1] // Quantity
+
+		price := LoBFixed(fixed.NewS(p))
+		quantity, err := strconv.ParseFloat(q, 64)
+		if err != nil {
+			continue
+		}
+
+		if quantity == 0 {
+			bL2LoB.Remove(price, "a")
+		} else {
+			bL2LoB.UpdateOrAdd(price, quantity, "a")
+		}
+
 	}
 
 	return nil
