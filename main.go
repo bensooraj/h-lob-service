@@ -22,6 +22,7 @@ func main() {
 	doneChannel := make(chan struct{}, 0)
 
 	binanceL2LoB := limitorderbook.NewBinanceL2LimitOrderBook()
+	binanceL2LoB.UpdateOrderBook(doneChannel)
 
 	wsConnectionURL := url.URL{Scheme: "wss", Host: "stream.binancefuture.com", Path: "/ws/"}
 
@@ -34,11 +35,7 @@ func main() {
 		if err == nil && depthUpdate.EventType == "depthUpdate" {
 			log.Println("DEPTH Update Received", depthUpdate.EventType)
 
-			if binanceL2LoB.LastUpdateID == 0 {
-				binanceL2LoB.InitOrderBookFromSnapshot()
-			} else {
-				
-			}
+			binanceL2LoB.DepthUpdateBufferChannel <- depthUpdate
 
 			return nil
 		}

@@ -1,6 +1,8 @@
 package limitorderbook
 
 import (
+	"sync"
+
 	"github.com/google/btree"
 	"github.com/robaho/fixed"
 )
@@ -14,6 +16,7 @@ type L2LimitOrderBook struct {
 	PriceScale             float64
 	CumulativeBidLimitsMap map[LoBFixed]float64
 	CumulativeAskLimitsMap map[LoBFixed]float64
+	sync.Mutex
 }
 
 // LoBInt64 implements the Item interface for int64.
