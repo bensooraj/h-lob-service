@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/bensooraj/h-lob-service/binancewebsocket"
 	"github.com/google/btree"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/robaho/fixed"
-	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/binancewebsocket"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

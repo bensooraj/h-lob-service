@@ -3,7 +3,7 @@ package binancewebsocket
 import (
 	"time"
 
-	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/hwebsocket"
+	"github.com/bensooraj/h-lob-service/hwebsocket"
 )
 
 // BinanceWebsocket ...

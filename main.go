@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/bensooraj/h-lob-service/binancewebsocket"
+	"github.com/bensooraj/h-lob-service/limitorderbook"
 	jsoniter "github.com/json-iterator/go"
-	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/binancewebsocket"
-	"gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/limitorderbook"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

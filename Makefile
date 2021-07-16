@@ -3,5 +3,5 @@ run:
 
 test:
 	go clean -testcache
-	# go test -timeout 30s -run ^TestLoB_UpdateOrAdd_Small$ gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/limitorderbook
-	# go test -timeout 30s -run ^TestLoB_UpdateOrAdd_Large$ gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service/limitorderbook
+	# go test -timeout 30s -run ^TestLoB_UpdateOrAdd_Small$ github.com/bensooraj/h-lob-service/limitorderbook
+	# go test -timeout 30s -run ^TestLoB_UpdateOrAdd_Large$ github.com/bensooraj/h-lob-service/limitorderbook

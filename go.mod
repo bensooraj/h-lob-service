@@ -1,4 +1,4 @@
-module gitlab.com/hooklabs-backend/order-management-system-engine/h-lob-service
+module github.com/bensooraj/h-lob-service
 
 go 1.15
 
